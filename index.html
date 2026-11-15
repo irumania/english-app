@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#4f46e5">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>FluentFlow AI - 英会話ロールプレイ & 通勤学習</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans JP', sans-serif;
+            background-color: #f8fafc;
+            color: #0f172a;
+        }
+        /* カードフリップ用の3Dアニメーション */
+        .perspective {
+            perspective: 1000px;
+        }
+        .flip-card-inner {
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+        }
+        .flip-card-flipped .flip-card-inner {
+            transform: rotateY(180deg);
+        }
+        .flip-card-front, .flip-card-back {
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+        }
+        .flip-card-back {
+            transform: rotateY(180deg);
+        }
+        /* カスタムスクロールバー */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 9999px;
+        }
+        @keyframes pulse-ring {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+        .recording-pulse {
+            animation: pulse-ring 1.5s infinite;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- ヘッダーナビゲーション -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+        <div class="max-w-4xl mx-auto px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold text-lg shadow-sm">
+                        <i class="fa-solid fa-comments"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-base sm:text-lg text-slate-900 leading-tight">FluentFlow AI</h1>
+                        <p class="text-[11px] text-slate-500">実践ロールプレイ × 通勤スキマ学習</p>
+                    </div>
+                </div>
+                <!-- 音声自動再生トグル & スマホガイド & API設定（モバイル用） -->
+                <div class="sm:hidden flex items-center gap-1.5">
+                    <button id="toggleAutoTTS" onclick="toggleAutoTTS()" class="text-xs px-2.5 py-1.5 rounded-lg bg-slate-100 text-slate-700 font-medium flex items-center gap-1.5">
+                        <i id="ttsIconMobile" class="fa-solid fa-volume-high text-indigo-600"></i>
+                        <span>音声ON</span>
+                    </button>
+                    <button onclick="openPhoneGuideModal()" class="text-xs p-2 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100" title="スマホで使う方法">
+                        <i class="fa-solid fa-mobile-screen-button"></i>
+                    </button>
+                    <button onclick="openApiKeyModal()" class="text-xs p-2 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200" title="APIキー設定">
+                        <i class="fa-solid fa-gear"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- メインモード切替タブ -->
+            <div class="flex items-center gap-2 bg-slate-100 p-1 rounded-xl w-full sm:w-auto">
+                <button id="tabRoleplay" onclick="switchMainMode('roleplay')" class="flex-1 sm:flex-initial px-4 py-2 rounded-lg text-sm font-bold transition-all bg-white text-indigo-600 shadow-sm flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-microphone-lines"></i>
+                    <span>英会話ロールプレイ</span>
+                </button>
+                <button id="tabCommute" onclick="switchMainMode('commute')" class="flex-1 sm:flex-initial px-4 py-2 rounded-lg text-sm font-bold transition-all text-slate-600 hover:text-slate-900 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-train-subway"></i>
+                    <span>通勤モード</span>
+                </button>
+            </div>
+
+            <!-- PC用音声トグル & スマホガイド & API設定 -->
+            <div class="hidden sm:flex items-center gap-2">
+                <button onclick="toggleAutoTTS()" class="text-xs px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium flex items-center gap-1.5 transition">
+                    <i id="ttsIconPC" class="fa-solid fa-volume-high text-indigo-600"></i>
+                    <span id="ttsTextPC">AI音声: ON</span>
+                </button>
+                <button onclick="openPhoneGuideModal()" class="text-xs px-3 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold flex items-center gap-1.5 transition" title="Pixelで使う方法">
+                    <i class="fa-solid fa-mobile-screen-button"></i>
+                    <span>スマホ導入</span>
+                </button>
+                <button onclick="openApiKeyModal()" class="text-xs p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition" title="APIキー設定">
+                    <i class="fa-solid fa-gear"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- 通知トースト（alertの代替） -->
+    <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- スマホ導入ガイドモーダル -->
+    <div id="phoneGuideModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 class="font-bold text-base text-slate-900 flex items-center gap-2">
+                    <i class="fa-solid fa-mobile-screen-button text-indigo-600"></i>
+                    <span>Pixel（スマホ）でアプリとして使う方法</span>
+                </h3>
+                <button onclick="closePhoneGuideModal()" class="text-slate-400 hover:text-slate-700 p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <ol class="text-xs text-slate-600 space-y-3 leading-relaxed list-decimal pl-4">
+                <li><strong>HTMLを保存して無料公開する：</strong><br>このコードを <code>index.html</code> として保存し、<strong>Netlify Drop</strong> などにドラッグ＆ドロップすると自分専用のURLが発行されます。</li>
+                <li><strong>ChromeでURLを開く：</strong><br>PixelのChromeブラウザでそのURLを開き、右上の<strong>歯車アイコン（⚙️）</strong>から無料のGemini APIキーをセットします。</li>
+                <li><strong>ホーム画面に追加する：</strong><br>Chrome右上の <strong>「︙」→「ホーム画面に追加」→「インストール」</strong> を押すと、通常のアプリと同じアイコンから全画面で起動できます！</li>
+            </ol>
+            <div class="flex justify-end pt-2">
+                <button onclick="closePhoneGuideModal()" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- APIキー設定モーダル（スマホ単体で動かす用） -->
+    <div id="apiKeyModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 class="font-bold text-base text-slate-900 flex items-center gap-2">
+                    <i class="fa-solid fa-key text-indigo-600"></i>
+                    <span>Gemini APIキー設定</span>
+                </h3>
+                <button onclick="closeApiKeyModal()" class="text-slate-400 hover:text-slate-700 p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <p class="text-xs text-slate-600 leading-relaxed">
+                スマホのブラウザ単体で動かす場合は、Google AI Studioで取得した無料のGemini APIキーを入力して保存してください（端末内にのみ安全に保存されます）。
+            </p>
+            <div class="space-y-1.5">
+                <label class="text-xs font-bold text-slate-700">API Key</label>
+                <input type="password" id="apiKeyInput" placeholder="AIzaSy..." class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            </div>
+            <div class="flex justify-end gap-2 pt-2">
+                <button onclick="closeApiKeyModal()" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold">閉じる</button>
+                <button onclick="saveApiKey()" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-sm">保存する</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- メインコンテンツエリア -->
+    <main class="flex-1 max-w-3xl w-full mx-auto px-4 py-6">
+
+        <!-- ==========================================
+             1. 英会話ロールプレイモード
+             ========================================== -->
+        <section id="roleplaySection" class="space-y-6">
+            
+            <!-- シチュエーション選択画面 -->
+            <div id="scenarioSelector" class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-5">
+                <div>
+                    <span class="inline-block px-2.5 py-1 bg-indigo-50 text-indigo-700 text-xs font-bold rounded-md mb-2">STEP 1</span>
+                    <h2 class="text-xl font-bold text-slate-900">練習したいシチュエーションを選択</h2>
+                    <p class="text-sm text-slate-500 mt-1">AIが相手役になりきって会話をリードします。終了後に表現や発音のFBを受けられます。</p>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <button onclick="startRoleplay('カフェでの注文', 'You are a friendly barista at a trendy coffee shop in Seattle. Start by greeting the customer and asking what they would like to order. Keep responses natural and concise (1-3 sentences).')" class="text-left p-4 rounded-xl border border-slate-200 hover:border-indigo-500 hover:bg-indigo-50/40 transition group">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center text-lg group-hover:scale-110 transition">
+                                <i class="fa-solid fa-mug-hot"></i>
+                            </div>
+                            <div>
+                                <div class="font-bold text-slate-800">カフェで注文・カスタマイズ</div>
+                                <div class="text-xs text-slate-500 mt-0.5">初級〜中級 / 日常会話</div>
+                            </div>
+                        </div>
+                    </button>
+
+                    <button onclick="startRoleplay('海外出張の商談・ミーティング', 'You are a business partner from a tech company in New York meeting the user for the first time to discuss a potential project collaboration. Start with small talk and transition to business. Keep responses concise (1-3 sentences).')" class="text-left p-4 rounded-xl border border-slate-200 hover:border-indigo-500 hover:bg-indigo-50/40 transition group">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center text-lg group-hover:scale-110 transition">
+                                <i class="fa-solid fa-briefcase"></i>
+                            </div>
+                            <div>
+                                <div class="font-bold text-slate-800">海外クライアントとの商談</div>
+                                <div class="text-xs text-slate-500 mt-0.5">中級〜上級 / ビジネス英語</div>
+                            </div>
+                        </div>
+                    </button>
+
+                    <button onclick="startRoleplay('ホテルのチェックイン・要望', 'You are a polite front desk receptionist at a hotel in London. Welcome the guest and ask for their reservation details. Keep responses concise (1-3 sentences).')" class="text-left p-4 rounded-xl border border-slate-200 hover:border-indigo-500 hover:bg-indigo-50/40 transition group">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-lg group-hover:scale-110 transition">
+                                <i class="fa-solid fa-hotel"></i>
+                            </div>
+                            <div>
+                                <div class="font-bold text-slate-800">ホテルのチェックイン・トラブル対応</div>
+                                <div class="text-xs text-slate-500 mt-0.5">初級〜中級 / 旅行英会話</div>
+                            </div>
+                        </div>
+                    </button>
+
+                    <button onclick="startRoleplay('同僚とのランチ・週末の雑談', 'You are a friendly coworker having lunch with the user. Ask about their weekend plans or recent hobbies using natural casual English and idioms. Keep responses concise (1-3 sentences).')" class="text-left p-4 rounded-xl border border-slate-200 hover:border-indigo-500 hover:bg-indigo-50/40 transition group">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center text-lg group-hover:scale-110 transition">
+                                <i class="fa-solid fa-champagne-glasses"></i>
+                            </div>
+                            <div>
+                                <div class="font-bold text-slate-800">同僚とのカジュアルな雑談</div>
+                                <div class="text-xs text-slate-500 mt-0.5">中級 / イディオム・スラング</div>
+                            </div>
+                        </div>
+                    </button>
+                </div>
+
+                <!-- カスタムシナリオ入力 -->
+                <div class="pt-3 border-t border-slate-100">
+                    <label class="block text-xs font-bold text-slate-700 mb-2">オリジナル設定で練習する</label>
+                    <div class="flex flex-col sm:flex-row gap-2">
+                        <input type="text" id="customScenarioInput" placeholder="例：英語面接で自分の強みをアピールする、美容院で髪型を伝える..." class="flex-1 px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <button onclick="startCustomRoleplay()" class="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-sm font-bold rounded-xl transition whitespace-nowrap">
+                            次へ（予習する）
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- STEP 2: 事前インプット（キーフレーズ・イディオム予習画面） -->
+            <div id="prepWorkspace" class="hidden bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-5">
+                <div class="flex items-start justify-between gap-3 border-b border-slate-100 pb-4">
+                    <div>
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="inline-block px-2.5 py-0.5 bg-indigo-100 text-indigo-700 text-xs font-bold rounded-md">STEP 2: 事前インプット</span>
+                            <span id="prepScenarioBadge" class="text-xs font-bold text-slate-500">カフェでの注文</span>
+                        </div>
+                        <h2 class="text-xl font-bold text-slate-900">この場面で使うべきキーフレーズ5選</h2>
+                        <p class="text-xs sm:text-sm text-slate-500 mt-1">まずは音とニュアンスを確認しましょう。会話中に使うと自動でチェックが入ります！</p>
+                    </div>
+                    <button onclick="resetRoleplay()" class="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition shrink-0" title="シーン選択に戻る">
+                        <i class="fa-solid fa-xmark text-lg"></i>
+                    </button>
+                </div>
+
+                <!-- 予習フレーズ生成ローディング -->
+                <div id="prepLoading" class="py-12 text-center space-y-3">
+                    <div class="inline-block w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+                    <p class="text-sm font-bold text-slate-700">このシチュエーションの必須フレーズを厳選中...</p>
+                    <p class="text-xs text-slate-500">ネイティブが実際に使うイディオムと発音のコツをまとめています</p>
+                </div>
+
+                <!-- 予習フレーズカード一覧 -->
+                <div id="prepCardsContainer" class="hidden space-y-3"></div>
+
+                <!-- 会話開始アクションバー -->
+                <div id="prepActionBar" class="hidden pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <button onclick="resetRoleplay()" class="w-full sm:w-auto px-4 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs sm:text-sm font-bold transition">
+                        <i class="fa-solid fa-arrow-left mr-1"></i> シーンを選び直す
+                    </button>
+                    <button onclick="proceedToChatRoleplay()" class="w-full sm:w-auto flex-1 sm:max-w-md py-3.5 px-6 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold shadow-md transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-comments"></i>
+                        <span>このフレーズを使って会話を始める！</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- STEP 3: チャット＆ロールプレイ画面（初期非表示） -->
+            <div id="chatWorkspace" class="hidden flex flex-col bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <!-- チャットヘッダー -->
+                <div class="px-4 py-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-2 min-w-0">
+                        <button onclick="backToPrep()" class="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-200/60 rounded-lg transition" title="予習画面に戻る">
+                            <i class="fa-solid fa-arrow-left"></i>
+                        </button>
+                        <div class="truncate">
+                            <span class="text-[11px] font-bold text-indigo-600 block">STEP 3: ROLEPLAY IN PROGRESS</span>
+                            <h3 id="currentScenarioTitle" class="font-bold text-sm text-slate-900 truncate">カフェでの注文</h3>
+                        </div>
+                    </div>
+                    <button id="endAndFeedbackBtn" onclick="generateFeedback()" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-bold rounded-xl shadow-sm transition flex items-center gap-1.5 shrink-0">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i>
+                        <span>会話を終了してFBを見る</span>
+                    </button>
+                </div>
+
+                <!-- 予習フレーズ カンペ（折りたたみ可能） -->
+                <div class="bg-indigo-50/80 border-b border-indigo-100">
+                    <button onclick="toggleCheatSheet()" class="w-full px-4 py-2.5 flex items-center justify-between text-left hover:bg-indigo-100/50 transition">
+                        <div class="flex items-center gap-2">
+                            <span class="px-2 py-0.5 bg-indigo-600 text-white text-[10px] font-bold rounded">ミッション</span>
+                            <span class="text-xs font-bold 
