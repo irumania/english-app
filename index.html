@@ -16,7 +16,6 @@
             background-color: #f8fafc;
             color: #0f172a;
         }
-        /* カードフリップ用の3Dアニメーション */
         .perspective {
             perspective: 1000px;
         }
@@ -34,7 +33,6 @@
         .flip-card-back {
             transform: rotateY(180deg);
         }
-        /* カスタムスクロールバー */
         ::-webkit-scrollbar {
             width: 6px;
         }
@@ -70,11 +68,11 @@
                         <p class="text-[11px] text-slate-500">実践ロールプレイ × 通勤スキマ学習</p>
                     </div>
                 </div>
-                <!-- 音声自動再生トグル & スマホガイド & API設定（モバイル用） -->
+                <!-- モバイル用コントロール -->
                 <div class="sm:hidden flex items-center gap-1.5">
-                    <button id="toggleAutoTTS" onclick="toggleAutoTTS()" class="text-xs px-2.5 py-1.5 rounded-lg bg-slate-100 text-slate-700 font-medium flex items-center gap-1.5">
+                    <button onclick="toggleAutoTTS()" class="text-xs px-2.5 py-1.5 rounded-lg bg-slate-100 text-slate-700 font-medium flex items-center gap-1.5">
                         <i id="ttsIconMobile" class="fa-solid fa-volume-high text-indigo-600"></i>
-                        <span>音声ON</span>
+                        <span id="ttsTextMobile">音声ON</span>
                     </button>
                     <button onclick="openPhoneGuideModal()" class="text-xs p-2 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100" title="スマホで使う方法">
                         <i class="fa-solid fa-mobile-screen-button"></i>
@@ -97,7 +95,7 @@
                 </button>
             </div>
 
-            <!-- PC用音声トグル & スマホガイド & API設定 -->
+            <!-- PC用コントロール -->
             <div class="hidden sm:flex items-center gap-2">
                 <button onclick="toggleAutoTTS()" class="text-xs px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium flex items-center gap-1.5 transition">
                     <i id="ttsIconPC" class="fa-solid fa-volume-high text-indigo-600"></i>
@@ -114,7 +112,7 @@
         </div>
     </header>
 
-    <!-- 通知トースト（alertの代替） -->
+    <!-- 通知トースト -->
     <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
     <!-- スマホ導入ガイドモーダル -->
@@ -130,8 +128,7 @@
                 </button>
             </div>
             <ol class="text-xs text-slate-600 space-y-3 leading-relaxed list-decimal pl-4">
-                <li><strong>HTMLを保存して無料公開する：</strong><br>このコードを <code>index.html</code> として保存し、<strong>Netlify Drop</strong> などにドラッグ＆ドロップすると自分専用のURLが発行されます。</li>
-                <li><strong>ChromeでURLを開く：</strong><br>PixelのChromeブラウザでそのURLを開き、右上の<strong>歯車アイコン（⚙️）</strong>から無料のGemini APIキーをセットします。</li>
+                <li><strong>APIキーをセットする：</strong><br>右上の<strong>歯車アイコン（⚙️）</strong>から無料のGemini APIキーを貼り付けて保存します。</li>
                 <li><strong>ホーム画面に追加する：</strong><br>Chrome右上の <strong>「︙」→「ホーム画面に追加」→「インストール」</strong> を押すと、通常のアプリと同じアイコンから全画面で起動できます！</li>
             </ol>
             <div class="flex justify-end pt-2">
@@ -140,7 +137,7 @@
         </div>
     </div>
 
-    <!-- APIキー設定モーダル（スマホ単体で動かす用） -->
+    <!-- APIキー設定モーダル -->
     <div id="apiKeyModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4">
             <div class="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -153,7 +150,7 @@
                 </button>
             </div>
             <p class="text-xs text-slate-600 leading-relaxed">
-                スマホのブラウザ単体で動かす場合は、Google AI Studioで取得した無料のGemini APIキーを入力して保存してください（端末内にのみ安全に保存されます）。
+                Google AI Studioで取得した無料のGemini APIキーを入力して保存してください（端末内にのみ安全に保存されます）。
             </p>
             <div class="space-y-1.5">
                 <label class="text-xs font-bold text-slate-700">API Key</label>
@@ -174,7 +171,7 @@
              ========================================== -->
         <section id="roleplaySection" class="space-y-6">
             
-            <!-- シチュエーション選択画面 -->
+            <!-- STEP 1: シチュエーション選択画面 -->
             <div id="scenarioSelector" class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-5">
                 <div>
                     <span class="inline-block px-2.5 py-1 bg-indigo-50 text-indigo-700 text-xs font-bold rounded-md mb-2">STEP 1</span>
@@ -282,9 +279,8 @@
                 </div>
             </div>
 
-            <!-- STEP 3: チャット＆ロールプレイ画面（初期非表示） -->
+            <!-- STEP 3: チャット＆ロールプレイ画面 -->
             <div id="chatWorkspace" class="hidden flex flex-col bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                <!-- チャットヘッダー -->
                 <div class="px-4 py-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between gap-2">
                     <div class="flex items-center gap-2 min-w-0">
                         <button onclick="backToPrep()" class="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-200/60 rounded-lg transition" title="予習画面に戻る">
@@ -301,9 +297,13 @@
                     </button>
                 </div>
 
-                <!-- 予習フレーズ カンペ（折りたたみ可能） -->
+                <!-- 予習フレーズ カンペ -->
                 <div class="bg-indigo-50/80 border-b border-indigo-100">
                     <button onclick="toggleCheatSheet()" class="w-full px-4 py-2.5 flex items-center justify-between text-left hover:bg-indigo-100/50 transition">
                         <div class="flex items-center gap-2">
                             <span class="px-2 py-0.5 bg-indigo-600 text-white text-[10px] font-bold rounded">ミッション</span>
-                            <span class="text-xs font-bold 
+                            <span class="text-xs font-bold text-indigo-950">予習フレーズを使う (<span id="usedPhrasesCount">0</span>/<span id="totalPhrasesCount">5</span> 達成)</span>
+                        </div>
+                        <div class="flex items-center gap-1.5 text-xs font-bold text-indigo-600">
+                            <span id="cheatSheetToggleText">カンペを隠す</span>
+                            <i id="cheatSheetChe
